@@ -6,8 +6,16 @@ def ConvertToClock(tnow, hrange):
     # h="hours", 24="22 to 24 hrs ago"
     # tnow in seconds since the millenium
     t0 = time.mktime(time.strptime(tnow, "%Y %m %d %H:%M:%S"))
-    print tnow, t0
-    
+    #print tnow, t0, hrange
+    h0 = (hrange - 0) * 3600 # seconds
+    h1 = (hrange - 2) * 3600 # seconds
+    # same day?
+    lt0 = time.localtime(t0 - h0)
+    lt1 = time.localtime(t0 - h1)
+    if time.strftime("%Y/%m/%d", lt0) == time.strftime("%Y/%m/%d", lt1):
+        return "%s - %s" % (time.strftime("%Y/%m/%d %H:%M:%S", lt0), time.strftime("%H:%M:%S", lt1))
+    else:
+        return "%s - %s" % (time.strftime("%Y/%m/%d %H:%M:%S", lt0), time.strftime("%Y/%m/%d %H:%M:%S", lt1))
 
 
 def ConvertToCSV(cc, fn, fdate): 
@@ -33,6 +41,7 @@ def ConvertToCSV(cc, fn, fdate):
     # probably only interested in data for sensor 0
     sensors = ['0']
 
+    values = [ ]
     for dk in datakeys:
         dset = h[dk]
         assert 'sensor' in dset, dset.keys()
@@ -40,15 +49,18 @@ def ConvertToCSV(cc, fn, fdate):
         if sid not in sensors:
             continue
         hours = [hk for hk in dset if re.match("h([0-9][0-9][0-9])", hk)]
-        hours.sort()
-        values = [ ]
+        hours.sort(reverse=True)
         for hh in hours:
             hrange = int(hh[1:])
             clockrange = ConvertToClock(dateofdump, hrange)
             val = float(dset[hh])
-            values.append((hrange, val))
+            values.append((clockrange, val))
+    f = open(fn, "w")
+    f.write("%s, %s\n" % ("Date", "Energy [%s]" % u))
+    for rv in values:
+        f.write("%s, %f\n" % rv)
+    f.close()
     
-        print "values = ", values
 
 
 
