@@ -1,13 +1,25 @@
-import sys
+import sys, os
 import re
-def ConvertToCSV(cc, fn):
+import time
+
+def ConvertToClock(tnow, hrange):
+    # h="hours", 24="22 to 24 hrs ago"
+    # tnow in seconds since the millenium
+    t0 = time.mktime(time.strptime(tnow, "%Y %m %d %H:%M:%S"))
+    print tnow, t0
+    
+
+
+def ConvertToCSV(cc, fn, fdate): 
     # history
     h = cc['msg']['hist']
     # time taken
     t0 = cc['msg']['time']
 
+    # assume file has date...
+    dateofdump = "%s %s" % (fdate, t0)
+
     print "h keys:", h.keys()
-    print t0
 
     u = h['units']
     #expecting data entries
@@ -32,6 +44,7 @@ def ConvertToCSV(cc, fn):
         values = [ ]
         for hh in hours:
             hrange = int(hh[1:])
+            clockrange = ConvertToClock(dateofdump, hrange)
             val = float(dset[hh])
             values.append((hrange, val))
     
@@ -42,4 +55,5 @@ def ConvertToCSV(cc, fn):
 if __name__ == "__main__":
     # open a file
     cc = eval(open(sys.argv[1]).read())
-    ConvertToCSV(cc, "%s.csv" % sys.argv[1])
+    fdate = time.strftime("%Y %m %d", time.localtime(os.path.getctime(sys.argv[1])))
+    ConvertToCSV(cc, "%s.csv" % sys.argv[1], fdate)
