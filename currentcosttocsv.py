@@ -65,6 +65,10 @@ def ConvertToCSV(cc, fn, fdate):
 
     # probably only interested in data for sensor 0
     sensors = ['0']
+    bNormalizeSun = True
+
+    if bNormalizeSun:
+        altmax = Pysolar.GetAltitude(lat, lon, datetime.datetime(2014, 6, 21, 12, 00))
 
     values = [ ]
     for dk in datakeys:
@@ -80,6 +84,9 @@ def ConvertToCSV(cc, fn, fdate):
             clockrange = ConvertToClock(dateofdump, hrange)
             val = float(dset[hh])
             alt0, alt1 = GetSunAltitude(dateofdump, hrange)
+            if bNormalizeSun:
+                alt0 = alt0 / altmax
+                alt1 = alt1 / altmax
             values.append((clockrange, val, alt0, alt1))
     f = open(fn, "w")
     f.write("%s, %s, %s, %s\n" % ("Date", "Energy [%s]" % u, "Sun Altitude From",  "Sun Altitude To"))
