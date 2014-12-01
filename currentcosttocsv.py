@@ -57,19 +57,18 @@ def ConvertToCSV(cc, fn, fdate):
     u = h['units']
     #expecting data entries
     datakeys = [k for k in h.keys() if re.match('data*', k)]
-    print datakeys
 
     # should be 9 sets of data
     assert len(datakeys) == 10
     datakeys.sort()
 
+    # normaize sun's altitude to longest day for this geolocation
+    bNormalizeSun = True
+    if bNormalizeSun:
+        altmax = Pysolar.GetAltitude(lat, lon, datetime.datetime(2014, 6, 21, 12, 00)) # is 21st June the longest day equal to the highest altitude of the sun?
+
     # probably only interested in data for sensor 0
     sensors = ['0']
-    bNormalizeSun = True
-
-    if bNormalizeSun:
-        altmax = Pysolar.GetAltitude(lat, lon, datetime.datetime(2014, 6, 21, 12, 00))
-
     values = [ ]
     for dk in datakeys:
         dset = h[dk]
