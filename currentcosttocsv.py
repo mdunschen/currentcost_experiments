@@ -43,7 +43,7 @@ def ConvertToClock(tnow, hrange):
         return "%s - %s" % (time.strftime("%Y/%m/%d %H:%M:%S", lt0), time.strftime("%Y/%m/%d %H:%M:%S", lt1))
 
 
-def ConvertToCSV(cc, fn, fdate): 
+def addCCToValues(cc, values, fdate):
     # history
     h = cc['msg']['hist']
     # time taken
@@ -57,19 +57,19 @@ def ConvertToCSV(cc, fn, fdate):
     u = h['units']
     #expecting data entries
     datakeys = [k for k in h.keys() if re.match('data*', k)]
+    print datakeys
 
     # should be 9 sets of data
     assert len(datakeys) == 10
     datakeys.sort()
 
-    # normaize sun's altitude to longest day for this geolocation
-    bNormalizeSun = True
-    if bNormalizeSun:
-        altmax = Pysolar.GetAltitude(lat, lon, datetime.datetime(2014, 6, 21, 12, 00)) # is 21st June the longest day equal to the highest altitude of the sun?
-
     # probably only interested in data for sensor 0
     sensors = ['0']
-    values = [ ]
+    bNormalizeSun = True
+
+    if bNormalizeSun:
+        altmax = Pysolar.GetAltitude(lat, lon, datetime.datetime(2014, 6, 21, 12, 00))
+
     for dk in datakeys:
         dset = h[dk]
         assert 'sensor' in dset, dset.keys()
@@ -86,18 +86,33 @@ def ConvertToCSV(cc, fn, fdate):
             if bNormalizeSun:
                 alt0 = alt0 / altmax
                 alt1 = alt1 / altmax
-            values.append((clockrange, val, alt0, alt1))
-    f = open(fn, "w")
-    f.write("%s, %s, %s, %s\n" % ("Date", "Energy [%s]" % u, "Sun Altitude From",  "Sun Altitude To"))
-    for rv in values:
-        f.write("%s, %f, %f, %f\n" % rv)
-    f.close()
+            if clockrange in values:
+                # does this happen?
+                print values[clockrange]
+                print (val, alt0, alt1)
+            else:
+                values[clockrange] = (val, alt0, alt1)
     
+
+def ConvertToCSV(historylogs, fn, fdate): 
+    values = { }
+    for hislog in historylogs:
+        cc = eval(open(hislog, "r").read())
+        addCCToValues(cc, values, fdate)
+
+    f = open(fn, "w")
+    f.write("%s, %s, %s, %s\n" % ("Date", "Energy [%s]" % 'kWh', "Sun Altitude From",  "Sun Altitude To"))
+    skeys = sorted(values.keys())
+    for sk in skeys:
+        f.write("%s, %f, %f, %f\n" % ((sk,) + values[sk]))
+    f.close()
+
 
 
 
 if __name__ == "__main__":
     # open a file
-    cc = eval(open(sys.argv[1]).read())
-    fdate = time.strftime("%Y %m %d", time.localtime(os.path.getctime(sys.argv[1])))
-    ConvertToCSV(cc, "%s.csv" % sys.argv[1], fdate)
+    hl = sorted([f for f in os.listdir('.') if re.match('history[0-9][0-9][0-9].log$', f)])
+    assert hl
+    fdate = time.strftime("%Y %m %d", time.localtime(os.path.getctime(hl[-1])))
+    ConvertToCSV(hl, "%s.csv" % hl[0], fdate)
