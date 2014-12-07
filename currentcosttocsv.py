@@ -8,13 +8,16 @@ lat, lon = 53.373242,-2.86108
 def Getdatetime(t):
     return datetime.datetime.utcfromtimestamp(t)
 
-def GetAsSeconds(tnow):
-    t0 = time.mktime(time.strptime(tnow, "%Y %m %d %H:%M:%S"))
+def GetAsSeconds(tnow, bFullHours):
+    if bFullHours:
+        t0 = time.mktime(time.strptime(tnow, "%Y %m %d %H:00:00"))
+    else:
+        t0 = time.mktime(time.strptime(tnow, "%Y %m %d %H:%M:%S"))
     return t0
     
 
 def GetSunAltitude(dateofdump, hrange):
-    t0 = GetAsSeconds(dateofdump)
+    t0 = GetAsSeconds(dateofdump, True)
     h0 = (hrange - 0) * 3600
     h1 = (hrange - 1) * 3600
     dh0 = (t0 - h0)
@@ -30,7 +33,7 @@ def GetSunAltitude(dateofdump, hrange):
 def ConvertToClock(tnow, hrange):
     # h="hours", 24="22 to 24 hrs ago"
     # tnow in seconds since the millenium
-    t0 = GetAsSeconds(tnow)
+    t0 = GetAsSeconds(tnow, True)
     #print tnow, t0, hrange
     h0 = (hrange - 0) * 3600 # seconds
     h1 = (hrange - 2) * 3600 # seconds
