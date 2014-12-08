@@ -52,8 +52,6 @@ def ConvertToCSV(cc, fn, fdate):
     # assume file has date...
     dateofdump = "%s %s" % (fdate, t0)
 
-    print "h keys:", h.keys()
-
     u = h['units']
     #expecting data entries
     datakeys = [k for k in h.keys() if re.match('data*', k)]
