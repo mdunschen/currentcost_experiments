@@ -3,6 +3,9 @@ import re
 import time, datetime
 import Pysolar
 
+import bokeh.plotting as plot
+from bokeh.charts import TimeSeries
+
 lat, lon = 53.373242,-2.86108
 
 def Getdatetime(t):
@@ -35,17 +38,18 @@ def ConvertToClock(tnow, hrange):
     h0 = (hrange - 0) * 3600 # seconds
     h1 = (hrange - 2) * 3600 # seconds
     # same day?
-    lt0 = time.localtime(t0 - h0)
-    lt1 = time.localtime(t0 - h1)
+    lt0 = datetime.datetime.fromtimestamp(t0 - h0)
+    lt1 = datetime.datetime.fromtimestamp(t0 - h1)
     return (lt0, lt1)
 
 def FormatTimeRange(timerange, bAddDay):
     lt0, lt1 = timerange
-    sameday = time.strftime("%Y/%m/%d", lt0) == time.strftime("%Y/%m/%d", lt1)
+    #sameday = time.strftime("%Y/%m/%d", lt0) == time.strftime("%Y/%m/%d", lt1)
+    sameday = (lt0.year, lt0.month, lt0.day) == (lt1.year, lt1.month, lt1.day)
     if bAddDay:
-        return (sameday, "%s %s-%s" % (time.strftime("%Y/%m/%d", lt0), time.strftime("%H", lt0), time.strftime("%Hh", lt1)))
+        return (sameday, "%s %s-%s" % (lt0.strftime("%Y/%m/%d"), lt0.strftime("%H"), lt1.strftime("%Hh")))
     else:
-        return (sameday, "%s-%s" % (time.strftime("%H", lt0), time.strftime("%Hh", lt1)))
+        return (sameday, "%s-%s" % (lt0.strftime("%H"), lt1.strftime("%Hh")))
 
 def addCCToValues(cc, values, fdate):
     # history
@@ -110,6 +114,29 @@ def ConvertToCSV(historylogs, fn, fdate):
     f.close()
 
 
+def PlotUsingBokeh(historylogs, fdate):
+    values = { }
+    for hislog in historylogs:
+        cc = eval(open(hislog, "r").read())
+        addCCToValues(cc, values, fdate)
+    skeys = sorted(values.keys())
+    elec = [values[k][0] for k in skeys]
+    labels = [ ]
+    sd = True
+    for sk in skeys:
+        lsd, ts = FormatTimeRange(sk, sd)
+        labels.append(ts)
+        sd = not lsd
+
+
+    plot.output_file("elec.html", title="elec example")
+
+    #plot.figure(title="Electricity[kwh]")
+    ts = TimeSeries(skeys)
+    plot.quad(left=[s[0] for s in skeys], right=[s[1] for s in skeys], bottom=0.0, top=elec)
+    ts.show()
+
+
 
 
 if __name__ == "__main__":
@@ -117,4 +144,5 @@ if __name__ == "__main__":
     hl = sorted([f for f in os.listdir('.') if re.match('history[0-9][0-9][0-9].log$', f)])
     assert hl
     fdate = time.strftime("%Y %m %d", time.localtime(os.path.getctime(hl[-1])))
-    ConvertToCSV(hl, "%s.csv" % hl[0], fdate)
+    #ConvertToCSV(hl, "%s.csv" % hl[0], fdate)
+    PlotUsingBokeh(hl, fdate)
