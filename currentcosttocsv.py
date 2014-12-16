@@ -4,15 +4,21 @@ import time, datetime
 import Pysolar
 
 import bokeh.plotting as plot
+from bokeh.plotting import ColumnDataSource
 from bokeh.charts import TimeSeries
+from bokeh.objects import HoverTool
 
 lat, lon = 53.373242,-2.86108
 
 def Getdatetime(t):
     return datetime.datetime.utcfromtimestamp(t)
 
-def GetAsSeconds(tnow):
-    t0 = time.mktime(time.strptime(tnow, "%Y %m %d %H:%M:%S"))
+def GetAsSeconds(tnow, bDropMinutes=True):
+
+    if bDropMinutes:
+        t0 = time.mktime(time.strptime(tnow[:-6], "%Y %m %d %H"))
+    else:
+        t0 = time.mktime(time.strptime(tnowi, "%Y %m %d %H:%M:%S"))
     return t0
     
 
@@ -121,20 +127,29 @@ def PlotUsingBokeh(historylogs, fdate):
         addCCToValues(cc, values, fdate)
     skeys = sorted(values.keys())
     elec = [values[k][0] for k in skeys]
-    labels = [ ]
-    sd = True
-    for sk in skeys:
-        lsd, ts = FormatTimeRange(sk, sd)
-        labels.append(ts)
-        sd = not lsd
 
+    altmax = Pysolar.GetAltitude(lat, lon, datetime.datetime(2014, 6, 21, 12, 00))
+    alltimes = [ ]
+    for s0, s1 in skeys:
+        alltimes.append(s0)
+        alltimes.append(s1)
+    atf = ["%s-%s" % (t0.strftime("%Y/%m/%d %Hh"), t1.strftime("%Hh")) for t0, t1 in skeys]
+    
+    source = ColumnDataSource(data={'alltimesformatted':atf, 'elec': ["%.3fkWh" % e for e in elec], 'altitude': ["%.2f%% to %.3f%%" % (100.0 * Pysolar.GetAltitude(lat, lon, t0)/altmax, 100.0 * Pysolar.GetAltitude(lat, lon, t1)/altmax) for t0, t1 in skeys]})
 
     plot.output_file("elec.html", title="elec example")
 
-    #plot.figure(title="Electricity[kwh]")
-    ts = TimeSeries(skeys)
-    plot.quad(left=[s[0] for s in skeys], right=[s[1] for s in skeys], bottom=0.0, top=elec)
-    ts.show()
+    plot.figure(title="Electricity[kwh]", x_axis_type="datetime", xrange=[min([s[0] for s in skeys]), max([s[1] for s in skeys])], tools="hover,resize,pan,wheel_zoom,box_zoom,reset,previewsave")
+    plot.hold()
+    plot.quad(left=[s[0] for s in skeys], right=[s[1] for s in skeys], bottom=0.0, top=elec, source=source, line_color="#000000", fill_color="#ff00ff")
+    plot.line(x=alltimes, y=[Pysolar.GetAltitude(lat, lon, t)/altmax for t in alltimes])
+    p = plot.curplot()
+    p.plot_width = 1280
+    
+    hover = p.select(dict(type=HoverTool))
+    hover.tooltips = {'Date & Time': '@alltimesformatted', 'Electricity': '@elec', 'Sun Altitude': '@altitude'}
+
+    plot.show()
 
 
 
