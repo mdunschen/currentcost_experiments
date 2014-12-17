@@ -7,6 +7,8 @@ import bokeh.plotting as plot
 from bokeh.plotting import ColumnDataSource
 from bokeh.charts import TimeSeries
 from bokeh.objects import HoverTool
+from bokeh.resources import CDN
+from bokeh.embed import components
 
 lat, lon = 53.373242,-2.86108
 
@@ -150,6 +152,9 @@ def PlotUsingBokeh(historylogs, fdate):
     hover.tooltips = {'Date & Time': '@alltimesformatted', 'Electricity': '@elec', 'Sun Altitude': '@altitude'}
 
     plot.show()
+    script, div = components(p, CDN)
+    open("script.js", "w").write(script)
+    open("div.html", "w").write(div)
 
 
 
