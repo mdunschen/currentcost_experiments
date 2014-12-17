@@ -10,7 +10,7 @@ from bokeh.objects import HoverTool
 from bokeh.resources import CDN
 from bokeh.embed import components
 
-lat, lon = 53.373242,-2.86108
+lat, lon = 53.373242,-2.86108 # Liverpool
 
 def Getdatetime(t):
     return datetime.datetime.utcfromtimestamp(t)
@@ -122,7 +122,7 @@ def ConvertToCSV(historylogs, fn, fdate):
     f.close()
 
 
-def PlotUsingBokeh(historylogs, fdate):
+def PlotUsingBokeh(historylogs, fname, fdate):
     values = { }
     for hislog in historylogs:
         cc = eval(open(hislog, "r").read())
@@ -139,30 +139,36 @@ def PlotUsingBokeh(historylogs, fdate):
     
     source = ColumnDataSource(data={'alltimesformatted':atf, 'elec': ["%.3fkWh" % e for e in elec], 'altitude': ["%.2f%% to %.3f%%" % (100.0 * Pysolar.GetAltitude(lat, lon, t0)/altmax, 100.0 * Pysolar.GetAltitude(lat, lon, t1)/altmax) for t0, t1 in skeys]})
 
-    plot.output_file("elec.html", title="elec example")
+    plot.output_file(fname)
 
     plot.figure(title="Electricity[kwh]", x_axis_type="datetime", xrange=[min([s[0] for s in skeys]), max([s[1] for s in skeys])], tools="hover,resize,pan,wheel_zoom,box_zoom,reset,previewsave")
     plot.hold()
     plot.quad(left=[s[0] for s in skeys], right=[s[1] for s in skeys], bottom=0.0, top=elec, source=source, line_color="#000000", fill_color="#ff00ff")
     plot.line(x=alltimes, y=[Pysolar.GetAltitude(lat, lon, t)/altmax for t in alltimes])
     p = plot.curplot()
-    p.plot_width = 1280
+    p.plot_width = 700
     
     hover = p.select(dict(type=HoverTool))
     hover.tooltips = {'Date & Time': '@alltimesformatted', 'Electricity': '@elec', 'Sun Altitude': '@altitude'}
 
     plot.show()
     script, div = components(p, CDN)
-    open("script.js", "w").write(script)
-    open("div.html", "w").write(div)
+    open("%s_script.js" % os.path.basename(fname)[0], "w").write(script)
+    open("%s_div.html" % os.path.basename(fname)[0], "w").write(div)
 
 
 
 
 if __name__ == "__main__":
-    # open a file
+    if len(sys.argv) == 1:
+        print "Usage: sys.argv[0] <output>.html|.csv"
+        sys.exit(0)
+    
+    # read all history files (written by 'readcurrentcost.py') 
     hl = sorted([f for f in os.listdir('.') if re.match('history[0-9][0-9][0-9].log$', f)])
     assert hl
-    fdate = time.strftime("%Y %m %d", time.localtime(os.path.getctime(hl[-1])))
-    #ConvertToCSV(hl, "%s.csv" % hl[0], fdate)
-    PlotUsingBokeh(hl, fdate)
+    fdate = time.strftime("%Y %m %d", time.localtime(os.path.getctime(hl[-1]))) # date the istory was written
+    if len(sys.argv) > 1 and sys.arg[1][:-3] == 'csv':
+        ConvertToCSV(hl, sys.argv[1], fdate)
+    else:
+        PlotUsingBokeh(hl, sys.argv[1], fdate)
