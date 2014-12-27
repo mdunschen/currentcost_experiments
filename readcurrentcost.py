@@ -21,8 +21,13 @@
 #
 
 import os, sys
-# need this to get data from the CurrentCost meter 
-import serial
+
+try:
+    # need this to get data from the CurrentCost meter 
+    import serial
+except ImportError:
+    serial = None
+    print "No Serial, can only read from file"
 
 # parses the XML
 from currentcostparser    import CurrentCostDataParser
